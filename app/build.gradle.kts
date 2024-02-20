@@ -9,7 +9,7 @@ android {
     defaultConfig {
         applicationId = "com.example.androidcamera"
         minSdk = 31
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -47,4 +47,5 @@ dependencies {
     implementation("androidx.camera:camera-extensions:1.3.1")
     implementation("androidx.camera:camera-view:1.3.1")
     implementation("androidx.camera:camera-extensions:1.3.1")
+    implementation("androidx.camera:camera-viewfinder:1.4.0-alpha04")
 }

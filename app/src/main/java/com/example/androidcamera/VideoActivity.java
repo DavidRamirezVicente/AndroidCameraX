@@ -75,7 +75,7 @@ public class VideoActivity extends AppCompatActivity {
 
 
         capture.setOnClickListener(view -> checkAndCaptureVideo());
-        photo.setOnClickListener(v -> capturePhoto());
+        photo.setOnClickListener(view -> capturePhoto());
 
         if (hasCameraPermission()) {
             startCamera(cameraFacing);
@@ -238,12 +238,19 @@ public class VideoActivity extends AppCompatActivity {
     }
 
     private void capturePhoto(){
-        String name = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSSS",Locale.ITALY).format(System.currentTimeMillis());
-        File file = new File(name+".jpg");
-        ImageCapture.OutputFileOptions outputFileOptions =
-                new ImageCapture.OutputFileOptions.Builder(file).build();
+        ImageCapture imageCapture1 = imageCapture;
+        if(imageCapture1 ==null){
+            return;
+        }
+        String name = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSSS", Locale.getDefault()).format(System.currentTimeMillis());
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+        contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
+        contentValues.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CameraX");
 
-        imageCapture.takePicture(outputFileOptions, ContextCompat.getMainExecutor(this),
+        ImageCapture.OutputFileOptions options = new ImageCapture.OutputFileOptions.Builder(getContentResolver(), MediaStore.Images.Media.EXTERNAL_CONTENT_URI,contentValues).build();
+
+        imageCapture.takePicture(options, ContextCompat.getMainExecutor(this),
                 new ImageCapture.OnImageSavedCallback() {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {

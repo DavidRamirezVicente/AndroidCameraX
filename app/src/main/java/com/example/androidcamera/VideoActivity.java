@@ -12,9 +12,12 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.video.MediaStoreOutputOptions;
@@ -32,6 +35,7 @@ import androidx.core.util.Consumer;
 import com.example.androidcamera.MainActivity;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
@@ -41,10 +45,12 @@ import java.util.concurrent.Executors;
 public class VideoActivity extends AppCompatActivity {
     private ExecutorService service;
     private Recording recording = null;
+    private ImageCapture imageCapture = null;
     private VideoCapture<Recorder> videoCapture = null;
-    private ImageButton capture, toggleFlash, flipCamera;
+    private ImageButton capture, toggleFlash, flipCamera, photo;
     private PreviewView previewView;
     private int cameraFacing = CameraSelector.LENS_FACING_BACK;
+
 
     private final ActivityResultLauncher<String> requestPermissionLauncher = registerForActivityResult(
             new ActivityResultContracts.RequestPermission(),
@@ -65,8 +71,11 @@ public class VideoActivity extends AppCompatActivity {
         toggleFlash = findViewById(R.id.flash);
         flipCamera = findViewById(R.id.rotate);
         previewView = findViewById(R.id.preview);
+        photo = findViewById(R.id.photo);
+
 
         capture.setOnClickListener(view -> checkAndCaptureVideo());
+        photo.setOnClickListener(v -> capturePhoto());
 
         if (hasCameraPermission()) {
             startCamera(cameraFacing);
@@ -187,7 +196,9 @@ public class VideoActivity extends AppCompatActivity {
                             .setQualitySelector(QualitySelector.from(Quality.HIGHEST))
                             .build();
                     videoCapture = VideoCapture.withOutput(recorder);
-
+                    imageCapture = new ImageCapture.Builder()
+                            .setTargetRotation(previewView.getDisplay().getRotation())
+                            .build();
                     provider.unbindAll();
 
                     CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(cameraFacing).build();
@@ -197,6 +208,7 @@ public class VideoActivity extends AppCompatActivity {
                         @Override
                         public void onClick(View v) {
                             toggleFlash(camera);
+
                         }
                     });
                 } catch (ExecutionException | InterruptedException e) {
@@ -223,6 +235,26 @@ public class VideoActivity extends AppCompatActivity {
                 }
             });
         }
+    }
+
+    private void capturePhoto(){
+        String name = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSSS",Locale.ITALY).format(System.currentTimeMillis());
+        File file = new File(name+".jpg");
+        ImageCapture.OutputFileOptions outputFileOptions =
+                new ImageCapture.OutputFileOptions.Builder(file).build();
+
+        imageCapture.takePicture(outputFileOptions, ContextCompat.getMainExecutor(this),
+                new ImageCapture.OnImageSavedCallback() {
+                    @Override
+                    public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+                        Toast.makeText(VideoActivity.this,"Foto guardada",Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onError(@NonNull ImageCaptureException exception) {
+                        Toast.makeText(VideoActivity.this,"Error al guardar la foto",Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     @Override

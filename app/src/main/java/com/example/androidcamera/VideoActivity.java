@@ -85,6 +85,7 @@ public class VideoActivity extends AppCompatActivity {
         }
 
         flipCamera.setOnClickListener(view -> {
+
             cameraFacing = (cameraFacing == CameraSelector.LENS_FACING_BACK) ?
                     CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK;
             startCamera(cameraFacing);

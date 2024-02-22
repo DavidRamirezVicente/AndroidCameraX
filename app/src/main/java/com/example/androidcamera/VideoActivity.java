@@ -5,6 +5,7 @@ import android.content.ContentValues;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.ImageButton;
@@ -202,7 +203,7 @@ public class VideoActivity extends AppCompatActivity {
                     provider.unbindAll();
 
                     CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(cameraFacing).build();
-                    Camera camera = provider.bindToLifecycle(VideoActivity.this, cameraSelector, preview, videoCapture);
+                    Camera camera = provider.bindToLifecycle(VideoActivity.this, cameraSelector, preview, videoCapture, imageCapture);
 
                     toggleFlash.setOnClickListener(new View.OnClickListener() {
                         @Override
@@ -237,32 +238,35 @@ public class VideoActivity extends AppCompatActivity {
         }
     }
 
-    private void capturePhoto(){
-        ImageCapture imageCapture1 = imageCapture;
-        if(imageCapture1 ==null){
+    private void capturePhoto() {
+        if (imageCapture == null) {
+            Toast.makeText(this, "Error: ImageCapture no está disponible", Toast.LENGTH_SHORT).show();
             return;
         }
+
         String name = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss-SSSS", Locale.getDefault()).format(System.currentTimeMillis());
         ContentValues contentValues = new ContentValues();
         contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
         contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg");
-        contentValues.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CameraX");
+        contentValues.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + File.separator + "CameraX");
 
-        ImageCapture.OutputFileOptions options = new ImageCapture.OutputFileOptions.Builder(getContentResolver(), MediaStore.Images.Media.EXTERNAL_CONTENT_URI,contentValues).build();
+        ImageCapture.OutputFileOptions outputFileOptions = new ImageCapture.OutputFileOptions.Builder(getContentResolver(),
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues).build();
 
-        imageCapture.takePicture(options, ContextCompat.getMainExecutor(this),
+        imageCapture.takePicture(outputFileOptions, ContextCompat.getMainExecutor(this),
                 new ImageCapture.OnImageSavedCallback() {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                        Toast.makeText(VideoActivity.this,"Foto guardada",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(VideoActivity.this, "Foto guardada exitosamente", Toast.LENGTH_SHORT).show();
                     }
 
                     @Override
                     public void onError(@NonNull ImageCaptureException exception) {
-                        Toast.makeText(VideoActivity.this,"Error al guardar la foto",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(VideoActivity.this, "Error al guardar la foto: ", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
+
 
     @Override
     protected void onDestroy() {

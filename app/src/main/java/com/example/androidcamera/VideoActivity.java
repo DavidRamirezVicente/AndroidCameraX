@@ -2,38 +2,30 @@ package com.example.androidcamera;
 
 import android.Manifest;
 import android.content.ContentValues;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.core.Camera;
-import androidx.camera.core.CameraSelector;
-import androidx.camera.core.ImageCapture;
-import androidx.camera.core.ImageCaptureException;
-import androidx.camera.core.Preview;
+import androidx.camera.video.*;
+import androidx.camera.core.*;
 import androidx.camera.lifecycle.ProcessCameraProvider;
-import androidx.camera.video.MediaStoreOutputOptions;
-import androidx.camera.video.Quality;
-import androidx.camera.video.QualitySelector;
-import androidx.camera.video.Recorder;
-import androidx.camera.video.Recording;
-import androidx.camera.video.VideoRecordEvent;
-import androidx.camera.video.VideoCapture;
 import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.util.Consumer;
 
-import com.example.androidcamera.MainActivity;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.File;
@@ -50,6 +42,7 @@ public class VideoActivity extends AppCompatActivity {
     private VideoCapture<Recorder> videoCapture = null;
     private ImageButton capture, toggleFlash, flipCamera, photo;
     private PreviewView previewView;
+    private ImageView minatura;
     private int cameraFacing = CameraSelector.LENS_FACING_BACK;
 
 
@@ -73,10 +66,24 @@ public class VideoActivity extends AppCompatActivity {
         flipCamera = findViewById(R.id.rotate);
         previewView = findViewById(R.id.preview);
         photo = findViewById(R.id.photo);
-
-
+        minatura = findViewById(R.id.imageView2);
+        minatura.setVisibility(View.GONE);
         capture.setOnClickListener(view -> checkAndCaptureVideo());
         photo.setOnClickListener(view -> capturePhoto());
+        minatura.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (minatura.getTag() != null) {
+                    Uri imageUri = (Uri) minatura.getTag();
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(imageUri, "image/*");
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(VideoActivity.this, "No hay imagen disponible", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
 
         if (hasCameraPermission()) {
             startCamera(cameraFacing);
@@ -153,23 +160,16 @@ public class VideoActivity extends AppCompatActivity {
                 setContentValues(contentValues).build();
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             return;
         }
         recording = videoCapture.getOutput().prepareRecording(VideoActivity.this, options).withAudioEnabled().start(ContextCompat.getMainExecutor(VideoActivity.this),
                 new Consumer<VideoRecordEvent>() {
                     @Override
                     public void accept(VideoRecordEvent videoRecordEvent) {
-                        if (videoRecordEvent instanceof VideoRecordEvent.Start){
+                        if (videoRecordEvent instanceof VideoRecordEvent.Start) {
                             capture.setImageResource(R.drawable.baseline_stop_circle_24);
-                        }else if (videoRecordEvent instanceof VideoRecordEvent.Finalize){
-                            if (((VideoRecordEvent.Finalize) videoRecordEvent).hasError()){
+                        } else if (videoRecordEvent instanceof VideoRecordEvent.Finalize) {
+                            if (((VideoRecordEvent.Finalize) videoRecordEvent).hasError()) {
                                 String msg = "Video Capture Successful";
                                 Toast.makeText(VideoActivity.this, msg, Toast.LENGTH_SHORT).show();
                             } else {
@@ -221,15 +221,14 @@ public class VideoActivity extends AppCompatActivity {
     }
 
     private void toggleFlash(Camera camera) {
-        if (camera.getCameraInfo().hasFlashUnit()){
-            if (camera.getCameraInfo().getTorchState().getValue() == 0){
+        if (camera.getCameraInfo().hasFlashUnit()) {
+            if (camera.getCameraInfo().getTorchState().getValue() == 0) {
                 toggleFlash.setImageResource(R.drawable.baseline_flash_off_24);
-            }else {
+            } else {
                 camera.getCameraControl().enableTorch(false);
                 toggleFlash.setImageResource(R.drawable.baseline_flash_on_24);
             }
-        }
-        else {
+        } else {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -258,7 +257,12 @@ public class VideoActivity extends AppCompatActivity {
                 new ImageCapture.OnImageSavedCallback() {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+                        minatura.setVisibility(View.VISIBLE);
                         Toast.makeText(VideoActivity.this, "Foto guardada exitosamente", Toast.LENGTH_SHORT).show();
+                        Uri saveURI = outputFileResults.getSavedUri();
+                        minatura.setImageURI(saveURI);
+                        minatura.setTag(saveURI);
+
                     }
 
                     @Override
@@ -267,7 +271,6 @@ public class VideoActivity extends AppCompatActivity {
                     }
                 });
     }
-
 
     @Override
     protected void onDestroy() {

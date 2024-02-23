@@ -44,6 +44,8 @@ public class VideoActivity extends AppCompatActivity {
     private PreviewView previewView;
     private ImageView minatura;
     private int cameraFacing = CameraSelector.LENS_FACING_BACK;
+    private Uri lastPhotoUri;
+
 
 
     private final ActivityResultLauncher<String> requestPermissionLauncher = registerForActivityResult(
@@ -218,6 +220,13 @@ public class VideoActivity extends AppCompatActivity {
                 }
             }
         }, ContextCompat.getMainExecutor(VideoActivity.this));
+        if (lastPhotoUri != null) {
+            minatura.setVisibility(View.VISIBLE);
+            minatura.setImageURI(lastPhotoUri);
+            minatura.setTag(lastPhotoUri);
+        } else {
+            minatura.setVisibility(View.GONE);
+        }
     }
 
     private void toggleFlash(Camera camera) {
@@ -262,8 +271,9 @@ public class VideoActivity extends AppCompatActivity {
                         Uri saveURI = outputFileResults.getSavedUri();
                         minatura.setImageURI(saveURI);
                         minatura.setTag(saveURI);
-
+                        lastPhotoUri = saveURI;
                     }
+
 
                     @Override
                     public void onError(@NonNull ImageCaptureException exception) {

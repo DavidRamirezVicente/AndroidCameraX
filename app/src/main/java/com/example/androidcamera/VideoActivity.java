@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.hardware.camera2.CameraAccessException;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -48,6 +49,7 @@ public class VideoActivity extends AppCompatActivity {
 
 
 
+
     private final ActivityResultLauncher<String> requestPermissionLauncher = registerForActivityResult(
             new ActivityResultContracts.RequestPermission(),
             isGranted -> {
@@ -60,7 +62,7 @@ public class VideoActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.video_layout);
-
+        requestCameraPermission();
         service = Executors.newSingleThreadExecutor();
 
         capture = findViewById(R.id.capture);
@@ -71,7 +73,16 @@ public class VideoActivity extends AppCompatActivity {
         minatura = findViewById(R.id.imageView2);
         minatura.setVisibility(View.GONE);
         capture.setOnClickListener(view -> checkAndCaptureVideo());
-        photo.setOnClickListener(view -> capturePhoto());
+        photo.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (hasCameraPermission()){
+                    capturePhoto();
+                }else {
+                    requestCameraPermission();
+                }
+            }
+        });
         minatura.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -87,10 +98,12 @@ public class VideoActivity extends AppCompatActivity {
             }
         });
 
-        if (hasCameraPermission()) {
+
+        if (hasCameraPermission() && hasAudioPermission()) {
             startCamera(cameraFacing);
         } else {
             requestCameraPermission();
+            requestAudioPermission();
         }
 
         flipCamera.setOnClickListener(view -> {
@@ -100,7 +113,6 @@ public class VideoActivity extends AppCompatActivity {
             startCamera(cameraFacing);
         });
     }
-
     private void checkAndCaptureVideo() {
         if (!hasCameraPermission()) {
             requestCameraPermission();
@@ -149,7 +161,6 @@ public class VideoActivity extends AppCompatActivity {
         Recording recording1 = recording;
         if (recording1 != null) {
             recording1.stop();
-            recording = null;
             return;
         }
         String name = new SimpleDateFormat("yyy-MM-dd-HH-mm-ss-SSS", Locale.getDefault()).format(System.currentTimeMillis());
@@ -172,12 +183,14 @@ public class VideoActivity extends AppCompatActivity {
                             capture.setImageResource(R.drawable.baseline_stop_circle_24);
                         } else if (videoRecordEvent instanceof VideoRecordEvent.Finalize) {
                             if (((VideoRecordEvent.Finalize) videoRecordEvent).hasError()) {
-                                String msg = "Video Capture Successful";
+                                String msg = "Error al capturar el video";
                                 Toast.makeText(VideoActivity.this, msg, Toast.LENGTH_SHORT).show();
                             } else {
-                                recording.close();
-                                recording = null;
-                                String msg = "Error:" + ((VideoRecordEvent.Finalize) videoRecordEvent).hasError();
+                                if (recording != null) {
+                                    recording.close();
+                                    recording = null;
+                                }
+                                String msg = "Video capturado exitosamente";
                                 Toast.makeText(VideoActivity.this, msg, Toast.LENGTH_SHORT).show();
                             }
                             capture.setImageResource(R.drawable.baseline_fiber_manual_record_24);
@@ -185,6 +198,7 @@ public class VideoActivity extends AppCompatActivity {
                     }
                 });
     }
+
 
     private void startCamera(int cameraFacing) {
         ListenableFuture<ProcessCameraProvider> processCameraProviderListenableFuture = ProcessCameraProvider.getInstance(VideoActivity.this);
